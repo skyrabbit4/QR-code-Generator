@@ -4,49 +4,171 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image QR Code Generator</title>
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #f3f4f6;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #d1d5db;
+        }
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #f6f8fa;
+        }
+        .container {
+            max-width: 400px;
+            width: 100%;
+            padding: 1rem;
+        }
+        .card {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         h1 {
-            color: #333;
+            margin: 0 0 1rem;
+            font-size: 1.5rem;
+            color: var(--text);
+            text-align: center;
         }
-        form {
-            background: #fff;
-            padding: 20px;
+        .upload-area {
+            background: #fafafa;
+            border: 2px solid var(--border);
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        input[type="file"] {
-            margin-bottom: 10px;
-        }
-        input[type="submit"] {
-            padding: 8px 16px;
-            background-color: #007bff;
-            border: none;
-            border-radius: 4px;
-            color: white;
+            padding: 2rem;
+            text-align: center;
             cursor: pointer;
+            transition: all 0.2s ease;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
         }
-        input[type="submit"]:hover {
-            background-color: #0056b3;
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: #f8f9ff;
+        }
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: #f0f4ff;
+        }
+        .upload-area input {
+            display: none;
+        }
+        .upload-area p {
+            margin: 0;
+            color: var(--muted);
+        }
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            opacity: 0.4;
+            display: block;
+        }
+        .preview {
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        button {
+            margin-top: 1.5rem;
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+        @media (max-width: 480px) {
+            .card { padding: 1rem; }
         }
     </style>
 </head>
 <body>
-    <h1>Image QR Code Generator</h1>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <label for="image">Select an image to upload:</label><br>
-        <input id="image" type="file" name="image" accept="image/*" required><br><br>
-        <input type="submit" value="Generate QR Code">
+<div class="container">
+  <div class="card">
+    <h1>Image QR Code Generator</h1>
+    <form id="qr-form" action="/upload" method="post" enctype="multipart/form-data">
+      <label class="upload-area" for="image">
+        <input type="file" id="image" name="image" accept="image/*" required>
+        <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+        <p>Click or drag & drop to upload an image</p>
+      </label>
+      <div class="preview" id="preview"></div>
+      <button type="submit" disabled>Generate QR Code</button>
     </form>
+  </div>
+</div>
+<script>
+const uploadArea = document.querySelector('.upload-area');
+const input = document.getElementById('image');
+const preview = document.getElementById('preview');
+const button = document.querySelector('button');
+
+uploadArea.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  const files = e.dataTransfer.files;
+  if (files.length) {
+    input.files = files;
+    loadPreview(files[0]);
+  }
+});
+
+input.addEventListener('change', () => {
+  if (input.files[0]) {
+    loadPreview(input.files[0]);
+  }
+});
+
+function loadPreview(file) {
+  const url = URL.createObjectURL(file);
+  preview.innerHTML = `<img src="${url}" alt="Image preview">`;
+  button.disabled = false;
+}
+</script>
 </body>
 </html>
